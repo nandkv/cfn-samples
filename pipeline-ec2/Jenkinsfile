@@ -7,7 +7,7 @@ pipeline {
     stage('deploy webserver') {
       steps {
         withAWS(roleAccount:"${TEAM1_APP1_DEV_WORKLOAD_ACCOUNT}", role:"${TEAM1_APP1_DEV_WORKLOAD_JENKINS_ROLE}") {
-          sh "aws cloudformation deploy --template-file file://pipeline-ec2/cfn-webserver.yaml --stack-name sample-webserver-stack"
+          sh "aws cloudformation deploy --template-file pipeline-ec2/cfn-webserver.yaml --stack-name sample-webserver-stack"
         }
       }
     }
