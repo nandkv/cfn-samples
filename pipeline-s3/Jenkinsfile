@@ -3,6 +3,10 @@ pipeline {
     label 'fargate'
   }
 
+//   environment {
+//       max = 1999
+//       random_num = "${Math.abs(new Random().nextInt(max+199))}"
+//   }
   stages {
     stage('validate') {
       steps {
