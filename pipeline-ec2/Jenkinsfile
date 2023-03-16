@@ -10,11 +10,10 @@ pipeline {
           sh "jq --version"
           script{
               /*extract load generator instanceId*/
-              vpcInfo = sh (
+              vpcId = sh (
                       script: "aws ec2 describe-vpcs --filters Name=isDefault,Values=true --query \"Vpcs[].VpcId\" --region us-east-1 | jq --raw-output '.[]'",
                       returnStdout: true
               ).trim()
-              vpcId = readJSON text: vpcInfo
               echo "${vpcId}"
           }
           //sh "aws cloudformation deploy --template-file sample/pipeline-ec2/cfn-webserver.yaml --stack-name sample-webserver-stack --parameter-overrides DefaultVPCId=${LookupDefaultVPCId}"
