@@ -13,7 +13,7 @@ pipeline {
                     returnStdout: true
             ).trim()
             echo "Deploying to Default VPC with Id: ${vpcId}"
-            sh "aws cloudformation deploy --template-file pipeline-ec2/cfn-webserver.yaml --stack-name sample-webserver-stack --parameter-overrides DefaultVPCId=${vpcId} --capabilities CAPABILITY_NAMED_IAM"
+            sh "aws cloudformation deploy --template-file pipeline-ec2/cfn-webserver.yaml --stack-name sample-webserver-stack --parameter-overrides DefaultVPCId=${vpcId} --capabilities CAPABILITY_NAMED_IAM --region us-east-1"
           }
         }
       }
