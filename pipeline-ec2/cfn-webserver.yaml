@@ -13,25 +13,72 @@ Parameters:
     Default: t2.micro
     AllowedValues:
       - t2.micro
+  DefaultVPCId:
+    Description: Default VPC ID
+    Type: AWS::EC2::VPC::Id
 
 Resources:
   WebServerSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
       GroupDescription: Enable HTTP access via port 80
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          Description: allow traffic on port 80
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 0.0.0.0/0
+      VpcId: !Ref DefaultVPCId
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic on port 443 from Instance
+          FromPort: 443
+          IpProtocol: tcp
+          ToPort: 443
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W2
+            reason: "Security Groups found with cidr open to world on ingress.  This should never be true on instance.  Permissible on ELB. Simuates ELB to save on cost."
+          - id: W5
+            reason: "Security Groups found with cidr open to world on egress. Simuates ELB to save on cost."
+          - id: W9
+            reason: "Security Groups found with ingress cidr that is not /32. Simuates ELB to save on cost."
+
+  SecurityGroupIngressPort80:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Allow all inbound traffic on port 80
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      GroupId: !Ref WebServerSecurityGroup
+      CidrIp: 0.0.0.0/0
+
+  WebServerInstanceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  
+  WebServerInstanceProfile: 
+    Type: "AWS::IAM::InstanceProfile"
+    Properties: 
+      Path: "/"
+      Roles: 
+        - !Ref WebServerInstanceRole
 
   WebServer:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: !Ref LatestAmiId
       InstanceType: !Ref InstanceType
-      SecurityGroups:
+      IamInstanceProfile: !Ref WebServerInstanceProfile
+      SecurityGroupIds:
         - !Ref WebServerSecurityGroup
       UserData:
         Fn::Base64: |-
@@ -42,8 +89,8 @@ Resources:
           service httpd start
           chkconfig httpd on
           echo "<html><body><h1>Deployed from Jenkins in DevOps Account. </h1> <br> <h4> Web server is running at: $(curl http://169.254.169.254/latest/meta-data/public-hostname)</h4></body></html>" > /var/www/html/index.html
-          
+
 Outputs:
   WebServerIP:
-    Description: The Public IP of the Web Server Instance
+    Description: The IP of the Web Server Instance
     Value: !GetAtt WebServer.PublicIp
