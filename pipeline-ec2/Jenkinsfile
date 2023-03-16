@@ -8,7 +8,9 @@ pipeline {
       steps {
         withAWS(roleAccount:"${TEAM1_APP1_DEV_WORKLOAD_ACCOUNT}", role:"${TEAM1_APP1_DEV_WORKLOAD_JENKINS_ROLE}") {
           sh "jq --version"
-          DEFAULT_VPC_ID = sh(script: 'aws ec2 describe-vpcs --filters Name=isDefault,Values=true --query "Vpcs[].VpcId" --region us-east-1', returnStdout: true)
+          environment {
+            DEFAULT_VPC_ID = sh(script: 'aws ec2 describe-vpcs --filters Name=isDefault,Values=true --query "Vpcs[].VpcId" --region us-east-1', returnStdout: true)
+          }
           echo "$DEFAULT_VPC_ID"
           //sh "aws cloudformation deploy --template-file sample/pipeline-ec2/cfn-webserver.yaml --stack-name sample-webserver-stack --parameter-overrides DefaultVPCId=${LookupDefaultVPCId}"
         }
