@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: The AWS CloudFormation template for creating instance role to be assumed by Cloud9 instance to deploy the stack.
+
+Resources:
+  Cloud9InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: cloud9-instance-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - "cloud9.amazonaws.com"
+                - "ec2.amazonaws.com"
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/AWSCloud9SSMInstanceProfile
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resource role name explicitly named."
+
+  Cloud9InstancePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: cloud9-instance-policy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "cloudformation:*"
+              - "codecommit:UpdateApprovalRuleTemplateName"
+              - "codecommit:ListApprovalRuleTemplates"
+              - "codecommit:DeleteApprovalRuleTemplate"
+              - "codecommit:ListRepositories"
+              - "codecommit:UpdateApprovalRuleTemplateContent"
+              - "codecommit:ListRepositoriesForApprovalRuleTemplate"
+              - "codecommit:CreateApprovalRuleTemplate"
+              - "codecommit:GetApprovalRuleTemplate"
+              - "codecommit:UpdateApprovalRuleTemplateDescription"
+              - "acm-pca:CreateCertificateAuthority"
+              - "acm-pca:ListCertificateAuthorities"
+              - 'ec2:DescribeVpcs'
+              - 'ec2:DescribeSubnets'
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - "acm-pca:TagCertificateAuthority"
+              - "acm-pca:ImportCertificateAuthorityCertificate"
+              - "acm-pca:ListTags"
+              - "acm-pca:GetCertificate"
+              - "acm-pca:UntagCertificateAuthority"
+              - "acm-pca:IssueCertificate"
+              - "acm-pca:GetCertificateAuthorityCsr"
+              - "acm-pca:DescribeCertificateAuthority"
+              - "acm-pca:DeleteCertificateAuthority"
+            Resource: !Sub arn:aws:acm-pca:*:${AWS::AccountId}:certificate-authority/*
+          - Effect: Allow
+            Action:
+              - "ssm:PutParameter"
+              - "ssm:GetParameter"
+            Resource: !Sub "arn:aws:ssm:*:${AWS::AccountId}:parameter/*"
+          - Effect: Allow
+            Action:
+              - "secretsmanager:GetSecretValue"
+              - "secretsmanager:PutSecretValue"
+              - "secretsmanager:CreateSecret"
+            Resource: !Sub "arn:aws:secretsmanager:*:${AWS::AccountId}:secret*"
+          - Effect: Allow
+            Action:
+              - "sts:AssumeRole"
+            Resource:
+              - "arn:aws:iam::*:role/cdk-*"
+          - Effect: Allow
+            Action:
+              - "codecommit:*"
+            Resource: !Sub "arn:aws:codecommit:*:${AWS::AccountId}:*"
+          - Effect: Allow
+            Action:
+              - "s3:*"
+            Resource: "arn:aws:s3:::cdktoolkit-stagingbucket-*"
+          - Effect: Allow
+            Action:
+              - "ec2:CreateKeyPair"
+            Resource: !Sub "arn:aws:ec2:*:${AWS::AccountId}:key-pair/*"
+          - Effect: Allow
+            Action:
+              - 'ecr:ListImages'
+              - 'ecr:BatchDeleteImage'
+            Resource: !Sub "arn:aws:ecr:*:${AWS::AccountId}:repository/*"
+      Roles:
+        - !Ref Cloud9InstanceRole
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: F4
+            reason: "S3 Bucket allow limits the resource level actions."
+          - id: W12
+            reason: "Actions cannot be restricted to resources."
+
+  Cloud9InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: cloud9-instance-profile
+      Roles:
+        - !Ref Cloud9InstanceRole
+
+Outputs:
+  OutCloud9InstanceProfileName:
+    Value: !GetAtt Cloud9InstanceProfile.Name
+    Export:
+      Name: Cloud9InstanceProfileName
